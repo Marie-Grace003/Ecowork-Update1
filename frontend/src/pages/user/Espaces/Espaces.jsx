@@ -24,24 +24,24 @@ export default function Espaces() {
     const today = new Date().toISOString().split('T')[0]
 
     useEffect(() => {
-    const fetchEspaces = async () => {
-        setLoading(true)
-        try {
-            let url = `/espaces?page=${currentPage}`
-            if (filterType) url += `&type=${filterType}`
-            if (dateDebut && dateFin) url += `&date_debut=${dateDebut}&date_fin=${dateFin}`
-            const response = await api.get(url)
-            setEspaces(response.data.data || response.data)
-            setLastPage(response.data.last_page || 1)
-        } catch {
-            console.error('Erreur chargement espaces')
-        } finally {
-            setLoading(false)
+        const fetchEspaces = async () => {
+            setLoading(true)
+            try {
+                let url = `/espaces?page=${currentPage}`
+                if (filterType) url += `&type=${filterType}`
+                if (dateDebut && dateFin) url += `&date_debut=${dateDebut}&date_fin=${dateFin}`
+                const response = await api.get(url)
+                setEspaces(response.data.data || response.data)
+                setLastPage(response.data.last_page || 1)
+            } catch {
+                console.error('Erreur chargement espaces')
+            } finally {
+                setLoading(false)
+            }
         }
-    }
 
-    fetchEspaces()
-}, [currentPage ,filterType, dateDebut, dateFin])
+        fetchEspaces()
+    }, [currentPage, filterType, dateDebut, dateFin])
 
 
     const filtered = espaces.filter(e => {
@@ -68,6 +68,7 @@ export default function Espaces() {
                 {/* Filtres */}
                 <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
                     <div className="flex flex-col md:flex-row gap-3">
+
                         <div className="relative flex-1">
                             <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                             <input
@@ -75,7 +76,7 @@ export default function Espaces() {
                                 placeholder="Rechercher un espace..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 text-sm focus:outline-none bg-transparent"
+                                className="w-full pl-9 pr-4 py-4 text-sm focus:outline-none bg-transparent"
                             />
                         </div>
 
@@ -90,22 +91,32 @@ export default function Espaces() {
                             <option value="conference">Conférence</option>
                         </select>
 
-                        <div className="flex items-center gap-2 border-l border-gray-100 pl-3">
-                            <input
-                                type="date"
-                                min={today}
-                                value={dateDebut}
-                                onChange={(e) => setDateDebut(e.target.value)}
-                                className="px-3 py-2 text-sm focus:outline-none bg-eco-light rounded-lg text-gray-600"
-                            />
-                            <span className="text-gray-300">→</span>
-                            <input
-                                type="date"
-                                min={dateDebut || today}
-                                value={dateFin}
-                                onChange={(e) => setDateFin(e.target.value)}
-                                className="px-3 py-2 text-sm focus:outline-none bg-eco-light rounded-lg text-gray-600"
-                            />
+                        <div className="flex flex-col border-l border-gray-100 pl-3">
+                            <p className="text-xs text-gray-400 mb-1">
+                                <i className="bi bi-calendar3 me-1"></i>
+                                Disponibilité
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="date"
+                                    min={today}
+                                    value={dateDebut}
+                                    onChange={(e) => {
+                                        setDateDebut(e.target.value)
+                                        setDateFin('') 
+                                    }}
+                                    className="px-3 py-2 text-sm focus:outline-none bg-eco-light rounded-lg text-gray-600"
+                                />
+                                <span className="text-gray-300">→</span>
+                                <input
+                                    type="date"
+                                    min={dateDebut || today}
+                                    value={dateFin}
+                                    onChange={(e) => setDateFin(e.target.value)}
+                                    disabled={!dateDebut} 
+                                    className="px-3 py-2 text-sm focus:outline-none bg-eco-light rounded-lg text-gray-600 disabled:opacity-40"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -198,7 +209,7 @@ export default function Espaces() {
 
             </main>
 
-            
+
         </div>
     )
 }
