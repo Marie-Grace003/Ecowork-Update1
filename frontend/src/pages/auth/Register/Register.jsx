@@ -108,6 +108,9 @@ export default function Register() {
             value={formData.telephone}
             onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
             className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-eco-blue"
+            pattern="[0-9+\s\-]{6,15}"
+            inputMode="tel"
+            placeholder="ex: 0612345678"
             required
           />
         </div>
