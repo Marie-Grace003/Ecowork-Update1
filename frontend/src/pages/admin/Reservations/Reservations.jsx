@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../../../components/layout/Header/Header'
 import Pagination from '../../../components/Pagination'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 export default function AdminReservations() {
     const navigate = useNavigate()
+    const { addToast } = useToast()
     const [reservations, setReservations] = useState([])
     const [loading, setLoading] = useState(true)
     const [filterDate, setFilterDate] = useState('')
@@ -24,6 +26,7 @@ export default function AdminReservations() {
                 setLastPage(response.data.last_page || 1)
             } catch {
                 console.error('Erreur chargement réservations')
+                addToast('Erreur lors du chargement des réservations', 'error')
             } finally {
                 setLoading(false)
             }
@@ -32,13 +35,16 @@ export default function AdminReservations() {
         fetchReservations()
     }, [currentPage, filterDate])
 
+
     const handleDelete = async (id) => {
         if (!confirm('Supprimer cette réservation ?')) return
         try {
             await api.delete(`/reservations/${id}`)
             setReservations(reservations.filter(r => r.id !== id))
+            addToast('Réservation supprimée avec succès', 'success')
         } catch {
             console.error('Erreur suppression')
+            addToast('Erreur lors de la suppression', 'error')
         }
     }
 
@@ -50,12 +56,17 @@ export default function AdminReservations() {
             setReservations(reservations.map(r =>
                 r.id === reservation.id ? response.data : r
             ))
+            addToast(
+                reservation.facture_acquittee ? 'Réservation repassée en attente' : 'Réservation validée',
+                'success'
+            )
         } catch {
             console.error('Erreur mise à jour statut')
+            addToast('Erreur lors de la mise à jour du statut', 'error')
         }
     }
 
-    // Filtre côté React sur les données déjà chargées
+    // Filtre données déjà chargées
     const filtered = reservations.filter(r =>
         `${r.user?.prenom} ${r.user?.nom} ${r.espace?.nom}`
             .toLowerCase()

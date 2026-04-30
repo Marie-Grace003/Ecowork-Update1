@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Header from '../../../components/layout/Header/Header'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 const typeBadge = {
     bureau: { label: 'Bureau', color: 'bg-eco-blue text-white' },
@@ -12,6 +13,7 @@ const typeBadge = {
 export default function Reservation() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { addToast } = useToast()
     const [espace, setEspace] = useState(null)
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
@@ -50,12 +52,15 @@ export default function Reservation() {
                 date_debut: formData.date_debut,
                 date_fin: formData.date_fin,
             })
+            addToast('Réservation confirmée avec succès !', 'success')
             setSuccess(true)
         } catch (err) {
             if (err.response?.data?.message) {
                 setError(err.response.data.message)
+                addToast(err.response.data.message, 'error')
             } else {
                 setError('Erreur lors de la réservation')
+                addToast('Erreur lors de la réservation', 'error')
             }
         } finally {
             setSubmitting(false)
@@ -226,7 +231,7 @@ export default function Reservation() {
                                     type="submit"
                                     
                                     disabled={submitting || nbJours === 0}
-                                    className="flex-1 py-3 rounded-lg text-sm font-medium text-gray-800"
+                                    className="flex-1 py-3 cursor-pointer rounded-lg text-sm font-medium text-gray-800"
                                     style={{ background: 'linear-gradient(to right, #7BDFF2, #7BDFF2, #B2F7EF)' }}
                                 >
                                     {submitting ? 'Réservation...' : 'Confirmer la réservation'}

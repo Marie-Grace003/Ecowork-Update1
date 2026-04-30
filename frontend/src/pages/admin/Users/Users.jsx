@@ -4,9 +4,11 @@ import Header from '../../../components/layout/Header/Header'
 import EditUserModal from './EditUserModal'
 import Pagination from '../../../components/Pagination'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 export default function AdminUsers() {
     const navigate = useNavigate()
+    const { addToast } = useToast()
     const [users, setUsers] = useState([])
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(true)
@@ -19,11 +21,11 @@ export default function AdminUsers() {
             setLoading(true)
             try {
                 const response = await api.get(`/admin/users?page=${currentPage}`) 
-                console.log('Réponse users:', response.data)
                 setUsers(response.data.data || response.data)
                 setLastPage(response.data.last_page || 1)
             } catch {
                 console.error('Erreur chargement utilisateurs')
+                addToast('Erreur lors du chargement des utilisateurs', 'error')
             } finally {
                 setLoading(false)
             }
@@ -37,8 +39,9 @@ export default function AdminUsers() {
         try {
             await api.delete(`/admin/users/${id}`)
             setUsers(users.filter(u => u.id !== id))
+            addToast('Utilisateur supprimé avec succès', 'success')
         } catch {
-            console.error('Erreur suppression')
+            addToast('Erreur lors de la suppression', 'error')
         }
     }
 
@@ -153,6 +156,7 @@ export default function AdminUsers() {
                     onUpdated={(updated) => {
                         setUsers(users.map(u => u.id === updated.id ? updated : u))
                         setSelectedUser(null)
+                        addToast('Utilisateur modifié avec succès', 'success')
                     }}
                 />
             )}

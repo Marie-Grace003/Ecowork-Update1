@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../../../components/layout/Header/Header'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 export default function CreateAdmin() {
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -24,6 +26,7 @@ export default function CreateAdmin() {
       navigate('/admin/users')
     } catch {
       setError('Erreur lors de la création')
+      addToast('Erreur lors de la création', 'error')
     } finally {
       setLoading(false)
     }

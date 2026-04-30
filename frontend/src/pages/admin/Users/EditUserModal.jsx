@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 export default function EditUserModal({ user, onClose, onUpdated }) {
+  const { addToast } = useToast()
   const [formData, setFormData] = useState({
     nom: user.nom,
     prenom: user.prenom,
@@ -21,6 +23,7 @@ export default function EditUserModal({ user, onClose, onUpdated }) {
       onClose()
     } catch {
       setError('Erreur lors de la modification')
+      addToast('Erreur lors de la modification', 'error')
     } finally {
       setLoading(false)
     }

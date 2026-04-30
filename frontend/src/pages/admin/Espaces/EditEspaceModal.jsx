@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
 
 export default function EditEspaceModal({ espace, onClose, onUpdated }) {
+    const { addToast } = useToast()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [equipements, setEquipements] = useState([])
@@ -35,8 +37,9 @@ export default function EditEspaceModal({ espace, onClose, onUpdated }) {
                 ...espace,
                 photos: espace.photos.filter(p => p.id !== photoId)
             })
+            addToast('Photo supprimée avec succès', 'success')
         } catch {
-            console.error('Erreur suppression photo')
+            addToast('Erreur lors de la suppression de la photo', 'error')
         }
     }
 
@@ -64,10 +67,12 @@ export default function EditEspaceModal({ espace, onClose, onUpdated }) {
             onClose()
         } catch {
             setError("Erreur lors de la modification")
+            addToast("Erreur lors de la modification de l'espace", 'error')
         } finally {
             setLoading(false)
         }
     }
+
 
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">

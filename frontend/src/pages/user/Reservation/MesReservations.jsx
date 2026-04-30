@@ -4,9 +4,12 @@ import Header from '../../../components/layout/Header/Header'
 import EditReservationModal from './EditReservationModal'
 import Pagination from '../../../components/Pagination'
 import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
+
 
 export default function MesReservations() {
     const navigate = useNavigate()
+    const { addToast } = useToast()
     const [reservations, setReservations] = useState([])
     const [loading, setLoading] = useState(true)
     const [selectedReservation, setSelectedReservation] = useState(null)
@@ -21,7 +24,7 @@ export default function MesReservations() {
                 setReservations(response.data.data || response.data)
                 setLastPage(response.data.last_page || 1)
             } catch {
-                console.error('Erreur chargement réservations')
+                addToast('Erreur lors du chargement des réservations', 'error')
             } finally {
                 setLoading(false)
             }
@@ -35,8 +38,10 @@ export default function MesReservations() {
         try {
             await api.delete(`/reservations/${id}`)
             setReservations(reservations.filter(r => r.id !== id))
+            addToast('Réservation supprimée avec succès', 'success')
         } catch {
             console.error('Erreur suppression')
+            addToast('Erreur lors de la suppression', 'error')
         }
     }
 
@@ -154,6 +159,7 @@ export default function MesReservations() {
                         onUpdated={(updated) => {
                             setReservations(reservations.map(r => r.id === updated.id ? updated : r))
                             setSelectedReservation(null)
+                            addToast('Réservation modifiée avec succès', 'success')
                         }}
                     />
                 )}
