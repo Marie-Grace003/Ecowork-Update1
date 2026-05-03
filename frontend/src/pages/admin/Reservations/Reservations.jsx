@@ -1,0 +1,195 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Header from '../../../components/layout/Header/Header'
+import Pagination from '../../../components/Pagination'
+import api from '../../../services/api'
+import { useToast } from '../../../contexts/useToast'
+
+export default function AdminReservations() {
+    const navigate = useNavigate()
+    const { addToast } = useToast()
+    const [reservations, setReservations] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [filterDate, setFilterDate] = useState('')
+    const [search, setSearch] = useState('')
+    const [showAnnulees, setShowAnnulees] = useState(true)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [lastPage, setLastPage] = useState(1)
+
+    useEffect(() => {
+        const fetchReservations = async () => {
+            setLoading(true)
+            try {
+                let url = `/admin/reservations?page=${currentPage}`
+                if (filterDate) url += `&date_debut=${filterDate}&date_fin=${filterDate}`
+                const response = await api.get(url)
+                setReservations(response.data.data || response.data)
+                setLastPage(response.data.last_page || 1)
+            } catch {
+                addToast('Erreur lors du chargement des réservations', 'error')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchReservations()
+    }, [currentPage, filterDate])
+
+    const handleDelete = async (id) => {
+        if (!confirm('Supprimer cette réservation ?')) return
+        try {
+            await api.delete(`/reservations/${id}`)
+            setReservations(reservations.filter(r => r.id !== id))
+            addToast('Réservation supprimée avec succès', 'success')
+        } catch {
+            addToast('Erreur lors de la suppression', 'error')
+        }
+    }
+
+    const handleToggleStatut = async (reservation) => {
+        try {
+            const response = await api.put(`/admin/reservations/${reservation.id}`, {
+                facture_acquittee: !reservation.facture_acquittee
+            })
+            setReservations(reservations.map(r =>
+                r.id === reservation.id ? response.data : r
+            ))
+            addToast(
+                reservation.facture_acquittee ? 'Réservation repassée en attente' : 'Réservation validée',
+                'success'
+            )
+        } catch {
+            addToast('Erreur lors de la mise à jour du statut', 'error')
+        }
+    }
+
+    const filtered = reservations
+        .filter(r => showAnnulees ? true : !r.deleted_at)
+        .filter(r =>
+            `${r.user?.prenom} ${r.user?.nom} ${r.espace?.nom}`
+                .toLowerCase()
+                .includes(search.toLowerCase())
+        )
+
+    return (
+        <div className="min-h-screen bg-eco-light flex flex-col">
+            <Header />
+            <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
+                <button onClick={() => navigate('/admin/dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm mb-6 transition-all">
+                    <i className="bi bi-arrow-left"></i>
+                    Retour au tableau de bord
+                </button>
+
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <div className="flex items-center gap-2 mb-6">
+                        <i className="bi bi-calendar3 text-eco-blue text-xl"></i>
+                        <h1 className="text-2xl font-bold text-gray-800 tracking-tighter">Gestion des réservations</h1>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rechercher par utilisateur ou espace</label>
+                            <div className="relative">
+                                <input type="text" placeholder="Ex : Marie Dupont, Salle Zen..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-9 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-blue bg-eco-light" />
+                                {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i className="bi bi-x-circle"></i></button>}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filtrer par date de réservation</label>
+                            <div className="relative">
+                                <input type="date" value={filterDate} onChange={(e) => { setFilterDate(e.target.value); setCurrentPage(1) }} className="w-full pl-4 pr-9 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-blue bg-eco-light" />
+                                {filterDate && <button onClick={() => { setFilterDate(''); setCurrentPage(1) }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i className="bi bi-x-circle"></i></button>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                        <button onClick={() => setShowAnnulees(!showAnnulees)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${showAnnulees ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                            <i className="bi bi-eye"></i>
+                            {showAnnulees ? 'Masquer les annulées' : 'Afficher les annulées'}
+                        </button>
+                    </div>
+
+                    {!loading && (
+                        <p className="text-xs text-gray-400 mb-4">
+                            <i className="bi bi-funnel me-1"></i>
+                            {filtered.length} réservation{filtered.length > 1 ? 's' : ''} trouvée{filtered.length > 1 ? 's' : ''}
+                            {search && <span className="ml-1">pour "<span className="text-gray-600">{search}</span>"</span>}
+                            {filterDate && <span className="ml-1">— le <span className="text-gray-600">{new Date(filterDate).toLocaleDateString('fr-FR')}</span></span>}
+                        </p>
+                    )}
+
+                    {loading ? (
+                        <p className="text-center text-gray-400 py-8">Chargement...</p>
+                    ) : filtered.length === 0 ? (
+                        <div className="text-center py-12">
+                            <i className="bi bi-calendar-x text-4xl text-gray-300 mb-3 block"></i>
+                            <p className="text-gray-400">Aucune réservation trouvée</p>
+                            {(search || filterDate) && (
+                                <button onClick={() => { setSearch(''); setFilterDate(''); setCurrentPage(1) }} className="mt-3 text-sm text-eco-blue hover:underline">Effacer les filtres</button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-100">
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3">Utilisateur</th>
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3">Espace</th>
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3 hidden md:table-cell">Date début</th>
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3 hidden md:table-cell">Date fin</th>
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3 hidden lg:table-cell">Prix total</th>
+                                        <th className="text-left text-xs font-medium text-gray-400 pb-3">Statut</th>
+                                        <th className="text-right text-xs font-medium text-gray-400 pb-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map((r) => (
+                                        <tr key={r.id} className={`border-b border-gray-50 transition-all ${r.deleted_at ? 'opacity-60 bg-red-50/30' : 'hover:bg-eco-light'}`}>
+                                            <td className="py-3 text-sm font-medium text-gray-800">
+                                                {r.user?.prenom} {r.user?.nom}
+                                                {r.user?.deleted_at && (
+                                                    <span className="ml-1 text-xs text-red-400">(compte supprimé)</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 text-sm text-gray-600">
+                                                {r.espace?.nom}
+                                                {r.espace?.deleted_at && (
+                                                    <span className="ml-1 text-xs text-orange-400">(espace supprimé)</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 text-sm text-gray-500 hidden md:table-cell">{new Date(r.date_debut).toLocaleDateString('fr-FR')}</td>
+                                            <td className="py-3 text-sm text-gray-500 hidden md:table-cell">{new Date(r.date_fin).toLocaleDateString('fr-FR')}</td>
+                                            <td className="py-3 text-sm font-medium text-gray-800 hidden lg:table-cell">{r.prix_total}€</td>
+                                            <td className="py-3">
+                                                {r.deleted_at ? (
+                                                    <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                                                        <i className="bi bi-x-circle"></i>
+                                                        Annulée
+                                                    </span>
+                                                ) : (
+                                                    <button onClick={() => handleToggleStatut(r)} className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${r.facture_acquittee ? 'bg-eco-mint text-gray-700' : 'bg-eco-pink text-gray-700'}`}>
+                                                        <i className={`bi ${r.facture_acquittee ? 'bi-check-circle' : 'bi-clock'}`}></i>
+                                                        {r.facture_acquittee ? ' Validée' : ' En attente'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="py-3 text-right">
+                                                {!r.deleted_at && (
+                                                    <button onClick={() => handleDelete(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-red-500 ml-auto">
+                                                        <i className="bi bi-trash"></i>
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    <Pagination currentPage={currentPage} lastPage={lastPage} onPageChange={(page) => setCurrentPage(page)} />
+                </div>
+            </main>
+        </div>
+    )
+}

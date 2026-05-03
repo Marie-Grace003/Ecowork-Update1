@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Controller;
+use App\Models\Espace;
+use App\Models\EspacePhoto;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+
+class EspaceController extends Controller
+{
+    // GET /api/espaces — liste tous les espaces
+    public function index(Request $request)
+    {
+        if (!$request->has('date_debut') && !$request->has('type')) {
+            $espaces = Cache::remember('espaces', 3600, function () {
+                return Espace::with(['equipements', 'photos'])->paginate(10);
+            });
+            return response()->json($espaces);
+        }
+
+        $query = Espace::with(['equipements', 'photos']);
+
+        // Filtre par type
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // Filtre par date (espaces disponibles)
+        if ($request->has('date_debut') && $request->has('date_fin')) {
+            $query->whereDoesntHave('reservations', function ($q) use ($request) {
+                $q->where('date_debut', '<=', $request->date_fin)
+                    ->where('date_fin', '>=', $request->date_debut);
+            });
+        }
+
+        return response()->json($query->paginate(10));
+    }
+
+    // GET /api/espaces/{id} — détail d'un espace
+    public function show($id)
+    {
+        $espace = Espace::with(['equipements', 'photos'])->findOrFail($id);
+        return response()->json($espace);
+    }
+
+    // POST /api/admin/espaces — créer un espace (admin)
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nom'              => 'required|string|max:255',
+            'surface'          => 'required|numeric',
+            'type'             => 'required|in:bureau,salle_de_reunion,conference',
+            'tarif_journalier' => 'required|numeric',
+            'equipements'      => 'array',
+            'photos'           => 'array',
+            'photos.*'         => 'image|mimes:jpeg,png,jpg,webp,avif|max:2048',
+        ]);
+
+        $espace = Espace::create([
+            'nom'              => $request->nom,
+            'surface'          => $request->surface,
+            'type'             => $request->type,
+            'tarif_journalier' => $request->tarif_journalier,
+        ]);
+
+        if ($request->has('equipements')) {
+            $espace->equipements()->sync($request->equipements);
+        }
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $chemin = $photo->store('espaces', 'public');
+                EspacePhoto::create([
+                    'espace_id' => $espace->id,
+                    'chemin'    => $chemin,
+                ]);
+            }
+        }
+        Cache::forget('espaces');
+        return response()->json($espace->load(['equipements', 'photos']), 201);
+    }
+
+    // PUT /api/admin/espaces/{id} — modifier un espace (admin)
+    public function update(Request $request, $id)
+    {
+        $espace = Espace::findOrFail($id);
+
+        $request->validate([
+            'nom'              => 'string|max:255',
+            'surface'          => 'numeric',
+            'type'             => 'in:bureau,salle_de_reunion,conference',
+            'tarif_journalier' => 'numeric',
+            'equipements'      => 'array',
+            'photos'           => 'array',
+            'photos.*'         => 'image|mimes:jpeg,png,jpg,webp,avif|max:2048',
+        ]);
+
+        $espace->update($request->only([
+            'nom',
+            'surface',
+            'type',
+            'tarif_journalier'
+        ]));
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $chemin = $photo->store('espaces', 'public');
+                EspacePhoto::create([
+                    'espace_id' => $espace->id,
+                    'chemin'    => $chemin,
+                ]);
+            }
+        }
+
+        if ($request->has('equipements')) {
+            $espace->equipements()->sync($request->equipements);
+        }
+        Cache::forget('espaces');
+        return response()->json($espace->load(['equipements', 'photos']));
+    }
+
+    // DELETE /api/admin/espaces/{id} — soft delete (admin)
+    public function destroy($id)
+    {
+        $espace = Espace::findOrFail($id);
+
+        // Vérifier s'il y a des réservations actives (non annulées)
+        $reservationsActives = $espace->reservations()
+            ->where('date_fin', '>=', now()->toDateString())
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($reservationsActives) {
+            return response()->json([
+                'message' => 'Impossible de supprimer cet espace : il a des réservations actives en cours ou à venir.'
+            ], 422);
+        }
+
+        $espace->delete();
+        Cache::forget('espaces');
+        return response()->json(['message' => 'Espace supprimé avec succès']);
+    }
+
+    // DELETE /api/admin/espaces/photos/{id} — supprimer une photo (admin)
+    public function destroyPhoto($id)
+    {
+        $photo = EspacePhoto::findOrFail($id);
+        Storage::disk('public')->delete($photo->chemin);
+        $photo->delete();
+        Cache::forget('espaces');
+        return response()->json(['message' => 'Photo supprimée avec succès']);
+    }
+}
