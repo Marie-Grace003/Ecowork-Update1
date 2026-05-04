@@ -37,7 +37,7 @@ class EspaceController extends Controller
             });
         }
 
-        return response()->json($query->paginate(10)); // pagination à 10 par page
+        return response()->json($query->paginate(10));
     }
 
     // GET /api/espaces/{id} — détail d'un espace
@@ -132,9 +132,7 @@ public function destroy($id)
 {
     $espace = Espace::findOrFail($id);
 
-    // On ne supprime plus les fichiers physiques
-    // car l'espace est juste désactivé, pas vraiment supprimé
-    $espace->delete(); // ← remplit deleted_at
+    $espace->delete();
 
     Cache::forget('espaces');
 

@@ -24,8 +24,8 @@ class ReservationController extends Controller
 
         // Filtre par date
         if ($request->has('date_debut') && $request->has('date_fin')) {
-            $query->where('date_debut', '<=', $request->date_fin)  // ✅ corrigé
-                  ->where('date_fin', '>=', $request->date_debut); // ✅ corrigé
+            $query->where('date_debut', '<=', $request->date_fin)
+                  ->where('date_fin', '>=', $request->date_debut);
         }
 
         return response()->json($query->paginate(10));
@@ -52,7 +52,7 @@ class ReservationController extends Controller
             ], 409);
         }
 
-        // Calculer le prix total
+        // Calcul du prix total
         $espace = Espace::findOrFail($request->espace_id);
         $debut  = \Carbon\Carbon::parse($request->date_debut);
         $fin    = \Carbon\Carbon::parse($request->date_fin);
@@ -131,7 +131,6 @@ class ReservationController extends Controller
     {
         $reservation = Reservation::findOrFail($id);
 
-        // Un utilisateur ne peut supprimer que ses propres réservations
         if (!$request->user()->isAdmin() && $reservation->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Non autorisé'], 403);
         }
