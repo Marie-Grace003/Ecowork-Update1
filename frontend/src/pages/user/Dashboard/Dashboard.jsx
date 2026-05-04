@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
 import Header from '../../../components/layout/Header/Header'
 import api from '../../../services/api'
+import PhotoCarousel from '../../../components/PhotoCarousel'
+
 
 const typeBadge = {
     bureau: { label: 'Bureau', color: 'bg-eco-blue text-white' },
@@ -106,25 +108,14 @@ export default function UserDashboard() {
 
                                 {/* Photo */}
                                 <div className="relative h-48 bg-eco-light">
-                                    {espace.photos && espace.photos.length > 0 ? (
-                                        <img
-                                            src={`http://127.0.0.1:8000/storage/${espace.photos[0].chemin}`}
-                                            alt={espace.nom}
-                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                            loading="lazy"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                            <i className="bi bi-building text-4xl"></i>
-                                        </div>
-                                    )}
-                                    <span className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium ${typeBadge[espace.type]?.color}`}>
-                                        {typeBadge[espace.type]?.label}
-                                    </span>
-                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                                        <h3 className="text-white font-bold">{espace.nom}</h3>
-                                    </div>
-                                </div>
+    <PhotoCarousel photos={espace.photos} nom={espace.nom} />
+    <span className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium z-10 ${typeBadge[espace.type]?.color}`}>
+        {typeBadge[espace.type]?.label}
+    </span>
+    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 z-10">
+        <h3 className="text-white font-bold">{espace.nom}</h3>
+    </div>
+</div>
 
                                 {/* Infos */}
                                 <div className="p-4">

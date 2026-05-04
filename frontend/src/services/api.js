@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+export const STORAGE_URL = 'https://api-ako-mian.ifran-b3dev.com/storage';
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: 'https://api-ako-mian.ifran-b3dev.com/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
